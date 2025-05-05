@@ -1,4 +1,4 @@
-from rest_framework import filters, views, status
+from rest_framework import filters, status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
@@ -61,9 +61,9 @@ class FollowViewSet(ModelViewSet):
     """Представление для работы с подписками."""
 
     serializer_class = FollowSerializer
-    filter_backends = [filters.SearchFilter]
-    permission_classes = [IsAuthenticated]
-    search_fields = ['user__username', 'following__username']
+    filter_backends = (filters.SearchFilter,)
+    permission_classes = (IsAuthenticated,)
+    search_fields = ('user__username', 'following__username')
 
     def get_queryset(self):
         return Follow.objects.filter(user=self.request.user)

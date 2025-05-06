@@ -33,7 +33,7 @@ class GroupViewSet(ModelViewSet):
 
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny,)
 
     def create(self, request, *args, **kwargs):
         """Запрещаем создание группы через API."""

@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from rest_framework import serializers
+from rest_framework.serializers import ValidationError
 
 from .mixins import BaseAllFieldsSerializer, AuthorSerializerMixin
 from posts.models import Comment, Post, Group, Follow
@@ -47,15 +49,15 @@ class FollowSerializer(BaseAllFieldsSerializer):
         model = Follow
 
     def validate(self, attrs):
-        if 'following' not in attrs:
-            raise serializers.ValidationError(
-                {'following': 'Поле "following" обязательно.'}
-            )
-
         current_user = self.context['request'].user
+        following_user = attrs.get('following')
 
-        if attrs['following'].id == current_user.id:
-            raise serializers.ValidationError(
-                'Нельзя подписаться на самого себя.'
-            )
+        if following_user and following_user.id == current_user.id:
+            raise ValidationError('Нельзя подписаться на самого себя.')
         return attrs
+
+    def create(self, validated_data):
+        try:
+            return super().create(validated_data)
+        except IntegrityError:
+            raise ValidationError('Вы уже подписаны на этого пользователя.')

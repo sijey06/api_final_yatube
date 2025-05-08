@@ -1,13 +1,10 @@
-from rest_framework import filters, status
+from rest_framework import filters
 from rest_framework.generics import get_object_or_404
-from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.viewsets import ModelViewSet
-from rest_framework import serializers
-from rest_framework.status import HTTP_405_METHOD_NOT_ALLOWED
+from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 
-from posts.models import Post, Group, Comment, Follow
+from posts.models import Post, Group, Comment
 from .mixins import BaseViewSet
 from .serializers import (
     PostSerializer,
@@ -28,19 +25,12 @@ class PostViewSet(BaseViewSet):
         serializer.save(author=self.request.user)
 
 
-class GroupViewSet(ModelViewSet):
+class GroupViewSet(ReadOnlyModelViewSet):
     """Представление для работы с группами."""
 
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     permission_classes = (AllowAny,)
-
-    def create(self, request, *args, **kwargs):
-        """Запрещаем создание группы через API."""
-        return Response(
-            {"detail": "Создание групп доступно только через админку."},
-            status=HTTP_405_METHOD_NOT_ALLOWED
-        )
 
 
 class CommentViewSet(BaseViewSet):
@@ -64,28 +54,10 @@ class FollowViewSet(ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     permission_classes = (IsAuthenticated,)
     search_fields = ('user__username', 'following__username')
+    http_method_names = ['get', 'post']
 
     def get_queryset(self):
-        return Follow.objects.filter(user=self.request.user)
+        return self.request.user.follower.all()
 
     def perform_create(self, serializer):
-        already_exists = Follow.objects.filter(
-            user=self.request.user,
-            following=serializer.validated_data['following']
-        ).exists()
-
-        if already_exists:
-            raise serializers.ValidationError(
-                {"message": "Уже подписаны на этого пользователя"},
-                code=status.HTTP_400_BAD_REQUEST
-            )
         serializer.save(user=self.request.user)
-
-    def create(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            return super().create(request, *args, **kwargs)
-        else:
-            return Response(
-                {"detail": "Требуется авторизация"},
-                status=status.HTTP_401_UNAUTHORIZED
-            )

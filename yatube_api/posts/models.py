@@ -95,7 +95,7 @@ class Follow(models.Model):
                 fields=['user', 'following'], name='unique_follow'
             ),
         ]
-        ordering = ['-id']
+        ordering = ('-id',)
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
 
